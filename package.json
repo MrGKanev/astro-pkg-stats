@@ -1,0 +1,42 @@
+{
+  "name": "astro-pkg-stats",
+  "version": "0.1.0",
+  "description": "Astro component and helpers that show npm and Packagist (Composer/Laravel) download statistics for your packages.",
+  "type": "module",
+  "author": "Gabriel Kanev",
+  "license": "MIT",
+  "keywords": [
+    "astro",
+    "astro-component",
+    "npm",
+    "packagist",
+    "composer",
+    "laravel",
+    "downloads",
+    "statistics"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./PackageStats.astro": "./src/components/PackageStats.astro"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "bin": {
+    "astro-pkg-stats": "./bin/cli.mjs"
+  },
+  "peerDependencies": {
+    "astro": "^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.6.2",
+    "astro": "^7.0.0",
+    "typescript": "^5.5.0"
+  },
+  "scripts": {
+    "typecheck": "astro check",
+    "cache:clear": "node bin/cli.mjs clear"
+  }
+}

@@ -1,0 +1,25 @@
+---
+import { PackageStats } from "astro-pkg-stats";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>astro-pkg-stats demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body style="max-width: 720px; margin: 3rem auto; padding: 0 1rem;">
+    <h1>astro-pkg-stats demo</h1>
+    <p>
+      Replace <code>npm.username</code> / <code>packagist.vendor</code> below with your
+      own npm and Packagist account name(s) — each accepts either one string or an
+      array of strings, useful if you publish under more than one account.
+    </p>
+
+    <PackageStats
+      title="My downloads"
+      npm={{ username: ["sindresorhus", "yeoman"] }}
+      packagist={{ vendor: ["laravel", "symfony"] }}
+    />
+  </body>
+</html>

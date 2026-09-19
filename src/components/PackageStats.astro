@@ -1,0 +1,270 @@
+---
+import { getPackageStats } from "../lib/stats";
+import type { PackageStatsOptions, PackageStatsSummary } from "../lib/types";
+
+interface Props extends PackageStatsOptions {
+  /** Heading shown above the stats. */
+  title?: string;
+  /** Extra class(es) applied to the root element. */
+  class?: string;
+}
+
+const { npm, packagist, cache, title = "Package downloads", class: className, ...rest } = Astro.props;
+void rest;
+
+let summary: PackageStatsSummary;
+let error: string | null = null;
+
+try {
+  summary = await getPackageStats({ npm, packagist, cache });
+} catch (e) {
+  error = e instanceof Error ? e.message : "Failed to load package stats.";
+  summary = { packages: [], totals: { daily: 0, weekly: 0, monthly: 0, total: 0, packageCount: 0 } };
+}
+
+const { packages, totals } = summary;
+const maxMonthly = Math.max(1, ...packages.map((p) => p.downloads.monthly ?? 0));
+const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
+---
+
+<section class:list={["pkg-stats", className]}>
+  <header class="pkg-stats__header">
+    <h2>{title}</h2>
+  </header>
+
+  {error && <p class="pkg-stats__error">{error}</p>}
+
+  <div class="pkg-stats__tiles">
+    <div class="pkg-stats__tile">
+      <span class="pkg-stats__tile-label">Monthly downloads</span>
+      <span class="pkg-stats__tile-value">{fmt(totals.monthly)}</span>
+    </div>
+    <div class="pkg-stats__tile">
+      <span class="pkg-stats__tile-label">Weekly downloads</span>
+      <span class="pkg-stats__tile-value">{fmt(totals.weekly)}</span>
+    </div>
+    <div class="pkg-stats__tile">
+      <span class="pkg-stats__tile-label">All-time downloads</span>
+      <span class="pkg-stats__tile-value">{fmt(totals.total)}</span>
+    </div>
+    <div class="pkg-stats__tile">
+      <span class="pkg-stats__tile-label">Packages tracked</span>
+      <span class="pkg-stats__tile-value">{totals.packageCount}</span>
+    </div>
+  </div>
+
+  {packages.length > 0 && (
+    <table class="pkg-stats__table">
+      <thead>
+        <tr>
+          <th scope="col">Package</th>
+          <th scope="col">Source</th>
+          <th scope="col">Monthly</th>
+          <th scope="col">Share</th>
+        </tr>
+      </thead>
+      <tbody>
+        {packages.map((pkg) => (
+          <tr>
+            <td>
+              <a href={pkg.url} target="_blank" rel="noopener noreferrer">{pkg.name}</a>
+            </td>
+            <td>
+              <span class:list={["pkg-stats__badge", `pkg-stats__badge--${pkg.ecosystem}`]}>
+                {pkg.ecosystem === "npm" ? "npm" : "Packagist"}
+              </span>
+            </td>
+            <td class="pkg-stats__num">{fmt(pkg.downloads.monthly ?? 0)}</td>
+            <td>
+              <div class="pkg-stats__bar-track">
+                <div
+                  class="pkg-stats__bar-fill"
+                  style={`width: ${Math.max(2, ((pkg.downloads.monthly ?? 0) / maxMonthly) * 100)}%`}
+                />
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+
+  {packages.length === 0 && !error && (
+    <p class="pkg-stats__empty">No packages found. Check the configured username/vendor.</p>
+  )}
+</section>
+
+<style>
+  .pkg-stats {
+    --pkg-surface: #fcfcfb;
+    --pkg-border: rgba(11, 11, 11, 0.1);
+    --pkg-text-primary: #0b0b0b;
+    --pkg-text-secondary: #52514e;
+    --pkg-text-muted: #898781;
+    --pkg-accent: #2a78d6;
+    --pkg-accent-track: #e1e0d9;
+    --pkg-danger: #d03b3b;
+    --pkg-badge-npm-bg: #cde2fb;
+    --pkg-badge-npm-text: #184f95;
+    --pkg-badge-packagist-bg: #f0efec;
+    --pkg-badge-packagist-text: #52514e;
+
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--pkg-text-primary);
+    background: var(--pkg-surface);
+    border: 1px solid var(--pkg-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-sizing: border-box;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .pkg-stats {
+      --pkg-surface: #1a1a19;
+      --pkg-border: rgba(255, 255, 255, 0.1);
+      --pkg-text-primary: #ffffff;
+      --pkg-text-secondary: #c3c2b7;
+      --pkg-text-muted: #898781;
+      --pkg-accent: #3987e5;
+      --pkg-accent-track: #2c2c2a;
+      --pkg-danger: #e66767;
+      --pkg-badge-npm-bg: #184f95;
+      --pkg-badge-npm-text: #cde2fb;
+      --pkg-badge-packagist-bg: #2c2c2a;
+      --pkg-badge-packagist-text: #c3c2b7;
+    }
+  }
+
+  :root[data-theme="dark"] .pkg-stats {
+    --pkg-surface: #1a1a19;
+    --pkg-border: rgba(255, 255, 255, 0.1);
+    --pkg-text-primary: #ffffff;
+    --pkg-text-secondary: #c3c2b7;
+    --pkg-text-muted: #898781;
+    --pkg-accent: #3987e5;
+    --pkg-accent-track: #2c2c2a;
+    --pkg-danger: #e66767;
+    --pkg-badge-npm-bg: #184f95;
+    --pkg-badge-npm-text: #cde2fb;
+    --pkg-badge-packagist-bg: #2c2c2a;
+    --pkg-badge-packagist-text: #c3c2b7;
+  }
+
+  .pkg-stats * {
+    box-sizing: border-box;
+  }
+
+  .pkg-stats__header h2 {
+    margin: 0 0 1rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .pkg-stats__error {
+    color: var(--pkg-danger);
+    font-size: 0.875rem;
+  }
+
+  .pkg-stats__tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .pkg-stats__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--pkg-border);
+    border-radius: 10px;
+    min-width: 0;
+  }
+
+  .pkg-stats__tile-label {
+    font-size: 0.75rem;
+    color: var(--pkg-text-secondary);
+  }
+
+  .pkg-stats__tile-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .pkg-stats__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .pkg-stats__table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--pkg-text-muted);
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--pkg-border);
+  }
+
+  .pkg-stats__table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--pkg-border);
+    vertical-align: middle;
+  }
+
+  .pkg-stats__table a {
+    color: var(--pkg-text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .pkg-stats__table a:hover {
+    text-decoration: underline;
+  }
+
+  .pkg-stats__num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .pkg-stats__badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .pkg-stats__badge--npm {
+    background: var(--pkg-badge-npm-bg);
+    color: var(--pkg-badge-npm-text);
+  }
+
+  .pkg-stats__badge--packagist {
+    background: var(--pkg-badge-packagist-bg);
+    color: var(--pkg-badge-packagist-text);
+  }
+
+  .pkg-stats__bar-track {
+    width: 100%;
+    min-width: 60px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--pkg-accent-track);
+    overflow: hidden;
+  }
+
+  .pkg-stats__bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--pkg-accent);
+  }
+
+  .pkg-stats__empty {
+    color: var(--pkg-text-secondary);
+    font-size: 0.875rem;
+  }
+</style>
